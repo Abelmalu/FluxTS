@@ -1,13 +1,15 @@
 package server
 
 import (
-	"log"
+	"context"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/abelmalu/fluxts/config"
+	ierrors "github.com/abelmalu/fluxts/errors"
 	"github.com/abelmalu/fluxts/platform"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -59,14 +61,40 @@ func (s *Server) StartServer() error {
 
 	case err := <-serverErrors:
 		return err
-	case sig := <- shutdownSignal:
- 
-		s.logger.Info("Shutdown signal received, stopping server...", zap.String("signal", sig.String()))
-		
-		s.grpcServer.GracefulStop()
-		return nil
+	case sig := <-shutdownSignal:
 
-		
+		s.logger.Info("Shutdown signal received, stopping server...", zap.String("signal", sig.String()))
+
+		shutdownContext, cancel := context.WithTimeout(context.Background(), time.Second*15)
+
+		defer cancel()
+
+		stopped := make(chan struct{})
+
+		go func() {
+
+			s.grpcServer.GracefulStop()
+
+			close(stopped)
+
+		}()
+
+		select {
+
+		case <-shutdownContext.Done():
+
+			s.logger.Warn("Graceful shutdown timed out, forcing immediate stop")
+			s.grpcServer.Stop()
+
+			return ierrors.ErrServerShutDownTimeOut
+
+		case <-stopped:
+
+			s.logger.Info("Server stopped cleanly")
+			return nil
+
+		}
+
 	}
 
 }
