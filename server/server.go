@@ -56,6 +56,7 @@ func (s *Server) StartServer() error {
 
 	shutdownSignal := make(chan os.Signal, 1)
 	signal.Notify(shutdownSignal, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(shutdownSignal)
 
 	select {
 

@@ -1,0 +1,41 @@
+syntax = "proto3";
+package fluxService;
+option go_package = "./proto/pb";
+
+
+service fluxService {
+
+    rpc Write(stream WriteBatch) returns (stream WriteAck);
+
+    rpc QueryRange(QueryRangeRequest) returns (QueryRangeResponse);
+
+
+}
+
+message 
+
+
+message WriteBatch {
+    string request_id = 1;
+
+    repeated Measurement measurements = 2;
+}
+
+message WriteAck {
+    string request_id = 1;
+
+    uint32 accepted_count = 2;
+
+    string message = 3;
+}
+
+message QueryRangeRequest {
+    string metric = 1;
+
+    google.protobuf.Timestamp start = 2;
+    google.protobuf.Timestamp end = 3;
+}
+
+message QueryRangeResponse {
+    repeated Measurement measurements = 1;
+}
