@@ -2,10 +2,12 @@ syntax = "proto3";
 package fluxService;
 option go_package = "./proto/pb";
 
+import "google/protobuf/timestamp.proto";
+
 
 service fluxService {
 
-    rpc Write(stream WriteBatch) returns (stream WriteAck);
+    rpc Write(stream Batch) returns (stream Ack);
 
     rpc QueryRange(QueryRangeRequest) returns (QueryRangeResponse);
 
@@ -29,7 +31,7 @@ message Sample {
 message Series{
 
     string metrics = 1;
-    repeated Lable labels = 2;
+    repeated Label labels = 2;
 
 }
 
@@ -50,12 +52,13 @@ message Ack {
 }
 
 message QueryRangeRequest {
-    string metric = 1;
 
+    string metric = 1;
     google.protobuf.Timestamp start = 2;
     google.protobuf.Timestamp end = 3;
+    
 }
 
 message QueryRangeResponse {
-    repeated Measurement measurements = 1;
+    repeated Batch batches = 1;
 }
