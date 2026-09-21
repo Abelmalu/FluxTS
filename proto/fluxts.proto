@@ -12,16 +12,36 @@ service fluxService {
 
 }
 
-message 
+message Label {
+
+    string name = 1;
+    string value = 2;
 
 
-message WriteBatch {
-    string request_id = 1;
-
-    repeated Measurement measurements = 2;
 }
 
-message WriteAck {
+message Sample {
+
+    google.protobuf.Timestamp timestamp =1 ;
+    google.protobuf.Timestamp value = 2 ;
+}
+
+message Series{
+
+    string metrics = 1;
+    repeated Lable labels = 2;
+
+}
+
+
+message Batch {
+
+    string request_id = 1;
+    Series series = 2;
+    repeated Sample samples = 3;
+}
+
+message Ack {
     string request_id = 1;
 
     uint32 accepted_count = 2;
