@@ -8,7 +8,6 @@ import "google/protobuf/timestamp.proto";
 service fluxService {
 
     rpc Write(stream Batch) returns (stream Ack);
-
     rpc QueryRange(QueryRangeRequest) returns (QueryRangeResponse);
 
 
