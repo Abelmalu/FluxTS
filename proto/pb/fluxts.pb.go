@@ -77,7 +77,7 @@ func (x *Label) GetValue() string {
 type Sample struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	Value         *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	Value         float64                `protobuf:"fixed64,2,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -119,11 +119,11 @@ func (x *Sample) GetTimestamp() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *Sample) GetValue() *timestamppb.Timestamp {
+func (x *Sample) GetValue() float64 {
 	if x != nil {
 		return x.Value
 	}
-	return nil
+	return 0
 }
 
 type Series struct {
@@ -409,10 +409,10 @@ const file_proto_fluxts_proto_rawDesc = "" +
 	"\x12proto/fluxts.proto\x12\vfluxService\x1a\x1fgoogle/protobuf/timestamp.proto\"1\n" +
 	"\x05Label\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value\"t\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"X\n" +
 	"\x06Sample\x128\n" +
-	"\ttimestamp\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x120\n" +
-	"\x05value\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x05value\"N\n" +
+	"\ttimestamp\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x01R\x05value\"N\n" +
 	"\x06Series\x12\x18\n" +
 	"\ametrics\x18\x01 \x01(\tR\ametrics\x12*\n" +
 	"\x06labels\x18\x02 \x03(\v2\x12.fluxService.LabelR\x06labels\"\x82\x01\n" +
@@ -462,23 +462,22 @@ var file_proto_fluxts_proto_goTypes = []any{
 	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
 }
 var file_proto_fluxts_proto_depIdxs = []int32{
-	7,  // 0: fluxService.Sample.timestamp:type_name -> google.protobuf.Timestamp
-	7,  // 1: fluxService.Sample.value:type_name -> google.protobuf.Timestamp
-	0,  // 2: fluxService.Series.labels:type_name -> fluxService.Label
-	2,  // 3: fluxService.Batch.series:type_name -> fluxService.Series
-	1,  // 4: fluxService.Batch.samples:type_name -> fluxService.Sample
-	7,  // 5: fluxService.QueryRangeRequest.start:type_name -> google.protobuf.Timestamp
-	7,  // 6: fluxService.QueryRangeRequest.end:type_name -> google.protobuf.Timestamp
-	3,  // 7: fluxService.QueryRangeResponse.batches:type_name -> fluxService.Batch
-	3,  // 8: fluxService.fluxService.Write:input_type -> fluxService.Batch
-	5,  // 9: fluxService.fluxService.QueryRange:input_type -> fluxService.QueryRangeRequest
-	4,  // 10: fluxService.fluxService.Write:output_type -> fluxService.Ack
-	6,  // 11: fluxService.fluxService.QueryRange:output_type -> fluxService.QueryRangeResponse
-	10, // [10:12] is the sub-list for method output_type
-	8,  // [8:10] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	7, // 0: fluxService.Sample.timestamp:type_name -> google.protobuf.Timestamp
+	0, // 1: fluxService.Series.labels:type_name -> fluxService.Label
+	2, // 2: fluxService.Batch.series:type_name -> fluxService.Series
+	1, // 3: fluxService.Batch.samples:type_name -> fluxService.Sample
+	7, // 4: fluxService.QueryRangeRequest.start:type_name -> google.protobuf.Timestamp
+	7, // 5: fluxService.QueryRangeRequest.end:type_name -> google.protobuf.Timestamp
+	3, // 6: fluxService.QueryRangeResponse.batches:type_name -> fluxService.Batch
+	3, // 7: fluxService.fluxService.Write:input_type -> fluxService.Batch
+	5, // 8: fluxService.fluxService.QueryRange:input_type -> fluxService.QueryRangeRequest
+	4, // 9: fluxService.fluxService.Write:output_type -> fluxService.Ack
+	6, // 10: fluxService.fluxService.QueryRange:output_type -> fluxService.QueryRangeResponse
+	9, // [9:11] is the sub-list for method output_type
+	7, // [7:9] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_proto_fluxts_proto_init() }

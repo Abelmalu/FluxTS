@@ -24,7 +24,7 @@ message Label {
 message Sample {
 
     google.protobuf.Timestamp timestamp =1 ;
-    google.protobuf.Timestamp value = 2 ;
+    double value = 2 ;
 }
 
 message Series{

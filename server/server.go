@@ -10,7 +10,9 @@ import (
 
 	"github.com/abelmalu/fluxts/config"
 	ierrors "github.com/abelmalu/fluxts/errors"
+	"github.com/abelmalu/fluxts/internal/handler"
 	"github.com/abelmalu/fluxts/platform"
+	"github.com/abelmalu/fluxts/proto/pb"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
@@ -20,6 +22,8 @@ type Server struct {
 	logger     *platform.Logger
 	cfg        *config.Config
 }
+
+var logger = platform.InitZapLogger()
 
 func NewServer(logger *platform.Logger, cfg *config.Config) *Server {
 
@@ -39,11 +43,16 @@ func (s *Server) StartServer() error {
 		s.logger.Error("failed to listen tcp requests", zap.Error(err))
 		return err
 	}
+	
+	h := handler.NewFluxHandler(logger)
+	pb.RegisterFluxServiceServer(s.grpcServer,h)
 
 	serverErrors := make(chan error, 1)
 	go func() {
 
 		s.logger.Info("Starting server on port:", zap.String("port", s.cfg.GRPCPORT))
+
+		
 
 		if err := s.grpcServer.Serve(lis); err != nil && err != grpc.ErrServerStopped {
 			s.logger.Error("failed to serve", zap.Error(err))
