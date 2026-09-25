@@ -16,7 +16,7 @@ type Config struct {
 	ServerAddr		 string
 }
 
-func ParseFlags() (Config, error) {
+func parseFlags() (Config, error) {
 	cfg := Config{}
 	flag.StringVar(&cfg.ServerAddr, "addr", "localhost:50051", "FluxTS gRPC server address (host:port)")
 	flag.IntVar(&cfg.Producers, "producers", 1, "number of concurrent producer streams")
