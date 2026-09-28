@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/abelmalu/fluxts/platform"
 	"go.uber.org/zap"
@@ -51,12 +52,13 @@ func main() {
 		zap.Duration("duration", cfg.Duration),
 	)
 
+	producers := make([]*Producer, cfg.Producers)
 	var wg sync.WaitGroup
 
 	for i := range cfg.Producers {
 		wg.Add(1)
 		p := NewProducer(i, cfg, client, logger)
-
+		producers[i] = p
 		go func(id int, p *Producer) {
 
 			defer wg.Done()
@@ -72,6 +74,52 @@ func main() {
 
 		}(i, p)
 
+		stats := make(chan struct{})
+		statsDone := make(chan struct{})
+
+		go func() {
+
+			defer close(statsDone)
+
+			t := time.NewTicker(2 * time.Second)
+
+			defer t.Stop()
+
+			for {
+
+				select {
+
+				case <-stats:
+					return
+				case <-t.C:
+
+					logAggregateStats(producers)
+				}
+			}
+
+		}()
+
+		wg.Wait()
+		close(stats)
+		<-statsDone
+		logAggregateStats(producers)
+		logger.Info("all producers stopped")
+
 	}
 
+}
+
+func logAggregateStats(producers []*Producer) {
+	var sent, acked, errs uint64
+	for _, p := range producers {
+		s, a, e := p.Stats()
+		sent += s
+		acked += a
+		errs += e
+	}
+	logger.Info("stats",
+		zap.Uint64("batches_sent", sent),
+		zap.Uint64("batches_acked", acked),
+		zap.Uint64("send_errors", errs),
+	)
 }
