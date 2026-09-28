@@ -17,13 +17,13 @@ var logger = platform.InitZapLogger()
 
 func main() {
 
-	cfg, err := parseFlags()
+	Cfg, err := parseFlags()
 	if err != nil {
 		logger.Error("invalid configuration", zap.Error(err))
 		os.Exit(2)
 	}
 
-	client, conn := initClient(cfg.ServerAddr, logger)
+	client, conn := initClient(Cfg.ServerAddr, logger)
 
 	defer conn.Close()
 
@@ -32,32 +32,32 @@ func main() {
 
 	runCtx := rootCtx
 
-	if cfg.Duration > 0 {
+	if Cfg.Duration > 0 {
 
 		var cancel context.CancelFunc
 
-		runCtx, cancel = context.WithTimeout(rootCtx, cfg.Duration)
+		runCtx, cancel = context.WithTimeout(rootCtx, Cfg.Duration)
 
 		defer cancel()
 
 	}
 
 	logger.Info("starting producers",
-		zap.String("addr", cfg.ServerAddr),
-		zap.Int("producers", cfg.Producers),
-		zap.Int("sps", cfg.SamplesPerSecond),
-		zap.Int("batch_size", cfg.BatchSize),
-		zap.Duration("flush_interval", cfg.FlushInterval),
-		zap.Int("max_inflight", cfg.MaxInflight),
-		zap.Duration("duration", cfg.Duration),
+		zap.String("addr", Cfg.ServerAddr),
+		zap.Int("producers", Cfg.Producers),
+		zap.Int("sps", Cfg.SamplesPerSecond),
+		zap.Int("batch_size", Cfg.BatchSize),
+		zap.Duration("flush_interval", Cfg.FlushInterval),
+		zap.Int("max_inflight", Cfg.MaxInflight),
+		zap.Duration("duration", Cfg.Duration),
 	)
 
-	producers := make([]*Producer, cfg.Producers)
+	producers := make([]*Producer, Cfg.Producers)
 	var wg sync.WaitGroup
 
-	for i := range cfg.Producers {
+	for i := range Cfg.Producers {
 		wg.Add(1)
-		p := NewProducer(i, cfg, client, logger)
+		p := NewProducer(i, Cfg, client, logger)
 		producers[i] = p
 		go func(id int, p *Producer) {
 

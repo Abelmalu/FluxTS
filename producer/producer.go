@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 	"sync/atomic"
 	"time"
 
@@ -29,26 +28,28 @@ type batchBuffer struct {
 	samples []*pb.Sample
 }
 
-var cfg Config
-var err error
+// var cfg Config
+// var err error
 
-func init() {
+// func init() {
 
-	cfg, err = parseFlags()
-	if err != nil {
-		logger.Error("invalid configuration", zap.Error(err))
-		os.Exit(2)
-	}
+// 	cfg, err = parseFlags()
+// 	if err != nil {
+// 		logger.Error("invalid configuration", zap.Error(err))
+// 		os.Exit(2)
+// 	}
 
-}
+// }
 
-var inflight = make(chan string, cfg.MaxInflight)
+var inflight chan string 
 
 var recDone = make(chan error, 1)
 
 var seq = 0
 
 func NewProducer(id int, cfg Config, client pb.FluxServiceClient, logger *platform.Logger) *Producer {
+
+	inflight = make(chan string, cfg.MaxInflight)
 	return &Producer{
 		id:     id,
 		cfg:    cfg,
@@ -106,7 +107,7 @@ func (p *Producer) Run(ctx context.Context) error {
 
 				if !ok {
 
-					buffers[bt.series.metric] = &batchBuffer{
+					b = &batchBuffer{
 
 						series: &pb.Series{
 
@@ -116,8 +117,8 @@ func (p *Producer) Run(ctx context.Context) error {
 
 						samples: make([]*pb.Sample, 0, p.cfg.BatchSize),
 					}
+					buffers[bt.series.metric] = b 
 				}
-
 				b.samples = append(b.samples, bt.sample)
 
 				if len(b.samples) >= p.cfg.BatchSize {
@@ -206,7 +207,7 @@ func (p *Producer) flushOne(b *batchBuffer, ctx context.Context, stream pb.FluxS
 		return err
 
 	}
-
+	p.sent.Add(1)
 	b.samples = make([]*pb.Sample, 0, p.cfg.BatchSize)
 
 	return nil
