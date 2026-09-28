@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync/atomic"
+	"time"
 
 	"github.com/abelmalu/fluxts/platform"
 	"github.com/abelmalu/fluxts/proto/pb"
@@ -22,10 +24,29 @@ type Producer struct {
 	errors atomic.Uint64
 }
 
-type BatchBuffer struct {
+type batchBuffer struct {
 	series  *pb.Series
 	samples []*pb.Sample
 }
+
+var cfg Config
+var err error
+
+func init() {
+
+	cfg, err = parseFlags()
+	if err != nil {
+		logger.Error("invalid configuration", zap.Error(err))
+		os.Exit(2)
+	}
+
+}
+
+var inflight = make(chan string, cfg.MaxInflight)
+
+var recDone = make(chan error, 1)
+
+var seq = 0
 
 func NewProducer(id int, cfg Config, client pb.FluxServiceClient, logger *platform.Logger) *Producer {
 	return &Producer{
@@ -54,14 +75,63 @@ func (p *Producer) Run(ctx context.Context) error {
 		return fmt.Errorf("open write stream: %w", err)
 	}
 
-	inflight := make(chan string, p.cfg.MaxInflight)
+	go p.runReceiver(stream, inflight, recDone)
 
-	recDone := make(chan error, 1)
+	buffers := map[string]*batchBuffer{}
 
+	sampleInterval := time.Second / time.Duration(p.cfg.SamplesPerSecond)
+	if sampleInterval <= 0 {
+		sampleInterval = time.Millisecond
+	}
+	sampleTicker := time.NewTicker(sampleInterval)
+	defer sampleTicker.Stop()
 
-	go p.runReceiver(stream,inflight,recDone)
+	flushTicker := time.NewTicker(p.cfg.FlushInterval)
+	defer flushTicker.Stop()
 
-	
+	for {
+		select {
+		case <-ctx.Done():
+		case rerr := <-recDone:
+
+			if rerr != nil {
+				p.errors.Add(1)
+			}
+			return rerr
+		case now := <-sampleTicker.C:
+
+			for _, bt := range p.gen.Tick(now) {
+
+				b, ok := buffers[bt.series.metric]
+
+				if !ok {
+
+					buffers[bt.series.metric] = &batchBuffer{
+
+						series: &pb.Series{
+
+							Metrics: bt.series.metric,
+							Labels:  bt.series.labels,
+						},
+
+						samples: make([]*pb.Sample, 0, p.cfg.BatchSize),
+					}
+				}
+
+				b.samples = append(b.samples, bt.sample)
+
+				if len(b.samples) >= p.cfg.BatchSize {
+
+					if err := p.flushOne(b, ctx, stream); err != nil {
+
+						return err
+					}
+				}
+
+			}
+
+		}
+	}
 
 }
 
@@ -103,4 +173,50 @@ func (p *Producer) runReceiver(stream pb.FluxService_WriteClient, inflight <-cha
 func (p *Producer) Stats() (sent, acked, errs uint64) {
 
 	return p.sent.Load(), p.acked.Load(), p.errors.Load()
+}
+
+func (p *Producer) flushOne(b *batchBuffer, ctx context.Context, stream pb.FluxService_WriteClient) error {
+
+	if len(b.samples) == 0 {
+
+		return nil
+	}
+
+	select {
+
+	case inflight <- "sent":
+	case <-ctx.Done():
+
+		return ctx.Err()
+
+	}
+
+	msg := &pb.Batch{
+
+		RequestId: p.GenerateRequestID(),
+		Series:    b.series,
+		Samples:   b.samples,
+	}
+
+	if err := stream.Send(msg); err != nil {
+
+		<-inflight
+		p.errors.Add(1)
+
+		return err
+
+	}
+
+	b.samples = make([]*pb.Sample, 0, p.cfg.BatchSize)
+
+	return nil
+
+}
+
+func (p *Producer) GenerateRequestID() string {
+
+	seq++
+
+	return fmt.Sprintf("p%d-%d", p.id, seq)
+
 }

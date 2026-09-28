@@ -25,7 +25,7 @@ type simSeries struct {
 type Batch struct {
 	series simSeries
 	sample *pb.Sample
-}
+}	
 
 func NewGenerator(id int) *Generator {
 	start := time.Now()
