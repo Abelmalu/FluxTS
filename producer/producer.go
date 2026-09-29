@@ -17,31 +17,19 @@ type Producer struct {
 	client pb.FluxServiceClient
 	logger *platform.Logger
 	gen    *Generator
-
 	sent   atomic.Uint64
 	acked  atomic.Uint64
 	errors atomic.Uint64
 }
 
-type batchBuffer struct {
+type Batch struct {
 	series  *pb.Series
 	samples []*pb.Sample
 }
 
-// var cfg Config
-// var err error
 
-// func init() {
 
-// 	cfg, err = parseFlags()
-// 	if err != nil {
-// 		logger.Error("invalid configuration", zap.Error(err))
-// 		os.Exit(2)
-// 	}
-
-// }
-
-var inflight chan string 
+var inflight chan string
 
 var recDone = make(chan error, 1)
 
@@ -78,7 +66,7 @@ func (p *Producer) Run(ctx context.Context) error {
 
 	go p.runReceiver(stream, inflight, recDone)
 
-	buffers := map[string]*batchBuffer{}
+	buffers := map[string]*Batch{}
 
 	sampleInterval := time.Second / time.Duration(p.cfg.SamplesPerSecond)
 	if sampleInterval <= 0 {
@@ -93,6 +81,8 @@ func (p *Producer) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
+			return ctx.Err()
+
 		case rerr := <-recDone:
 
 			if rerr != nil {
@@ -107,7 +97,7 @@ func (p *Producer) Run(ctx context.Context) error {
 
 				if !ok {
 
-					b = &batchBuffer{
+					b = &Batch{
 
 						series: &pb.Series{
 
@@ -117,7 +107,7 @@ func (p *Producer) Run(ctx context.Context) error {
 
 						samples: make([]*pb.Sample, 0, p.cfg.BatchSize),
 					}
-					buffers[bt.series.metric] = b 
+					buffers[bt.series.metric] = b
 				}
 				b.samples = append(b.samples, bt.sample)
 
@@ -176,7 +166,7 @@ func (p *Producer) Stats() (sent, acked, errs uint64) {
 	return p.sent.Load(), p.acked.Load(), p.errors.Load()
 }
 
-func (p *Producer) flushOne(b *batchBuffer, ctx context.Context, stream pb.FluxService_WriteClient) error {
+func (p *Producer) flushOne(b *Batch, ctx context.Context, stream pb.FluxService_WriteClient) error {
 
 	if len(b.samples) == 0 {
 

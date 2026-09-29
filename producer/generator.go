@@ -11,21 +11,22 @@ import (
 )
 
 type Generator struct {
-	series []simSeries
+	series []simMetric
 	rng    *rand.Rand
 	start  time.Time
 }
 
-type simSeries struct {
+type simMetric struct {
 	metric string
 	labels []*pb.Label
 	next   func(now time.Time, since time.Duration, rng *rand.Rand) float64
 }
 
-type Batch struct {
-	series simSeries
+type Series struct {
+	series simMetric
 	sample *pb.Sample
 }	
+
 
 func NewGenerator(id int) *Generator {
 	start := time.Now()
@@ -38,7 +39,7 @@ func NewGenerator(id int) *Generator {
 	return &Generator{
 		start: start,
 		rng:   rng,
-		series: []simSeries{
+		series: []simMetric{
 			{
 				metric: "cpu_usage",
 				labels: labels,
@@ -61,16 +62,16 @@ func NewGenerator(id int) *Generator {
 	}
 }
 
-func (g *Generator) Tick(now time.Time) []Batch {
+func (g *Generator) Tick(now time.Time) []Series {
 
 	since := now.Sub(g.start)
 
-	out := make([]Batch, 0, len(g.series))
+	out := make([]Series, 0, len(g.series))
 
 	for _, s := range g.series {
 		v := s.next(now, since, g.rng)
 
-		out = append(out, Batch{
+		out = append(out, Series{
 			series: s,
 			sample: &pb.Sample{
 
