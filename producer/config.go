@@ -22,7 +22,7 @@ func parseFlags() (Config, error) {
 	flag.IntVar(&cfg.Producers, "producers", 1, "number of concurrent producer streams")
 	flag.IntVar(&cfg.SamplesPerSecond, "sps", 10, "samples per second, per simulated series")
 	flag.IntVar(&cfg.BatchSize, "batch-size", 100, "max samples per batch before a forced flush")
-	flag.DurationVar(&cfg.FlushInterval, "flush-interval", 500*time.Millisecond, "flush at least this often")
+	flag.DurationVar(&cfg.FlushInterval, "flush-interval", 400*time.Millisecond, "flush at least this often")
 	flag.DurationVar(&cfg.Duration, "duration", 0, "total run time (0 = until Ctrl-C)")
 	flag.IntVar(&cfg.MaxInflight, "max-inflight", 1, "max unacknowledged batches per stream")
 	flag.Parse()

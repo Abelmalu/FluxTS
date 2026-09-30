@@ -81,7 +81,7 @@ func main() {
 
 			defer close(statsDone)
 
-			t := time.NewTicker(2 * time.Second)
+			t := time.NewTicker(300 * time.Millisecond)
 
 			defer t.Stop()
 

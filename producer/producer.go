@@ -27,13 +27,13 @@ type Batch struct {
 	samples []*pb.Sample
 }
 
-
-
 var inflight chan string
 
 var recDone = make(chan error, 1)
 
 var seq = 0
+
+var buffers = map[string]*Batch{}
 
 func NewProducer(id int, cfg Config, client pb.FluxServiceClient, logger *platform.Logger) *Producer {
 
@@ -65,8 +65,6 @@ func (p *Producer) Run(ctx context.Context) error {
 	}
 
 	go p.runReceiver(stream, inflight, recDone)
-
-	buffers := map[string]*Batch{}
 
 	sampleInterval := time.Second / time.Duration(p.cfg.SamplesPerSecond)
 	if sampleInterval <= 0 {
@@ -118,6 +116,15 @@ func (p *Producer) Run(ctx context.Context) error {
 						return err
 					}
 				}
+
+			}
+
+		case <-flushTicker.C:
+
+			if err := p.flushAll(ctx,stream); err != nil {
+				
+				p.logger.Error("error while flushing all",zap.Error(err))
+
 
 			}
 
@@ -202,6 +209,16 @@ func (p *Producer) flushOne(b *Batch, ctx context.Context, stream pb.FluxService
 
 	return nil
 
+}
+
+func (p *Producer) flushAll(ctx context.Context, stream pb.FluxService_WriteClient) error {
+
+	for _, b := range buffers {
+		if err := p.flushOne(b,ctx,stream); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (p *Producer) GenerateRequestID() string {
