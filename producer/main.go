@@ -74,7 +74,10 @@ func main() {
 
 		}(i, p)
 
-		stats := make(chan struct{})
+		
+	}
+
+	stats := make(chan struct{})
 		statsDone := make(chan struct{})
 
 		go func() {
@@ -105,7 +108,6 @@ func main() {
 		logAggregateStats(producers)
 		logger.Info("all producers stopped")
 
-	}
 
 }
 
