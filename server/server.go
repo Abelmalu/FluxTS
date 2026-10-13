@@ -11,6 +11,8 @@ import (
 	"github.com/abelmalu/fluxts/config"
 	ierrors "github.com/abelmalu/fluxts/errors"
 	"github.com/abelmalu/fluxts/internal/handler"
+	"github.com/abelmalu/fluxts/internal/repository"
+	"github.com/abelmalu/fluxts/internal/service"
 	"github.com/abelmalu/fluxts/platform"
 	"github.com/abelmalu/fluxts/proto/pb"
 	"go.uber.org/zap"
@@ -44,7 +46,9 @@ func (s *Server) StartServer() error {
 		return err
 	}
 	
-	h := handler.NewFluxHandler(logger)
+	r := repository.NewFluxRepository()
+	sv := service.NewFluxService(r)
+	h := handler.NewFluxHandler(logger,sv)
 	pb.RegisterFluxServiceServer(s.grpcServer,h)
 
 	serverErrors := make(chan error, 1)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 
+	abstract "github.com/abelmalu/fluxts/internal/interfaces"
 	"github.com/abelmalu/fluxts/platform"
 	"github.com/abelmalu/fluxts/proto/pb"
 	"go.uber.org/zap"
@@ -12,15 +13,15 @@ import (
 
 type FluxHandler struct {
 	pb.UnimplementedFluxServiceServer
-	//service abstract.FluxService
-	logger *platform.Logger
+	service abstract.FluxService
+	logger  *platform.Logger
 }
 
-func NewFluxHandler(logger *platform.Logger) *FluxHandler {
+func NewFluxHandler(logger *platform.Logger, sv abstract.FluxService) *FluxHandler {
 
 	return &FluxHandler{
 
-		//service: sv,
+		service: sv,
 		logger: logger,
 	}
 }
