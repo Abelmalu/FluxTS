@@ -22,41 +22,98 @@ func NewFluxHandler(logger *platform.Logger, sv abstract.FluxService) *FluxHandl
 	return &FluxHandler{
 
 		service: sv,
-		logger: logger,
+		logger:  logger,
 	}
 }
 
 func (h *FluxHandler) Write(stream grpc.BidiStreamingServer[pb.Batch, pb.Ack]) error {
 
-	for {
+	// for {
 
-		req, err := stream.Recv()
+	// 	req, err := stream.Recv()
 
-		h.logger.Info("messages", zap.String("message", req.String()))
+	// 	h.logger.Info("messages", zap.String("message", req.String()))
 
-		if err == io.EOF {
-			h.logger.Error("Error EOF", zap.Error(err))
+	// 	if err == io.EOF {
+	// 		h.logger.Error("Error EOF", zap.Error(err))
 
-			return err
+	// 		return err
 
+	// 	}
+
+	// 	if err != nil {
+
+	// 		h.logger.Error("Error EOF", zap.Error(err))
+
+	// 		return err
+
+	// 	}
+	// 	err = stream.Send(&pb.Ack{
+	// 		Message: "Success",
+	// 	})
+	// 	if err != nil {
+	// 		h.logger.Error("Error sending Ack to strea", zap.Error(err))
+	// 		return err
+	// 	}
+
+	// }
+
+	ackCh := make(chan *pb.Ack, 100)
+	errCh := make(chan error, 2)
+
+	go func() {
+
+		for {
+
+			req, err := stream.Recv()
+
+			if err != nil {
+
+				if err == io.EOF {
+
+					return
+				}
+
+			}
+
+			h.logger.Info(
+				"Received batch",
+				zap.String("message", req.String()),
+			)
+
+			ack := &pb.Ack{
+				Message: "Success",
+			}
+
+			select {
+
+			case ackCh <- ack:
+
+			case <-stream.Context().Done():
+				return
+			}
 		}
 
-		if err != nil {
+	}()
 
-			h.logger.Error("Error EOF", zap.Error(err))
+	go func() {
 
-			return err
+		for ack := range ackCh {
 
+			if err := stream.Send(); err != nil {
+
+				select {
+
+				case errCh <- err:
+				default:
+				}
+
+				return
+
+			}
 		}
-		err = stream.Send(&pb.Ack{
-			Message: "Success",
-		})
-		if err != nil {
-			h.logger.Error("Error sending Ack to strea", zap.Error(err))
-			return err
-		}
 
-	}
+	}()
 
 }
 func (h *FluxHandler) QueryRange(context.Context, *pb.QueryRangeRequest) (*pb.QueryRangeResponse, error) {
