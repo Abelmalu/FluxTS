@@ -28,40 +28,16 @@ func NewFluxHandler(logger *platform.Logger, sv abstract.FluxService) *FluxHandl
 
 func (h *FluxHandler) Write(stream grpc.BidiStreamingServer[pb.Batch, pb.Ack]) error {
 
-	// for {
-
-	// 	req, err := stream.Recv()
-
-	// 	h.logger.Info("messages", zap.String("message", req.String()))
-
-	// 	if err == io.EOF {
-	// 		h.logger.Error("Error EOF", zap.Error(err))
-
-	// 		return err
-
-	// 	}
-
-	// 	if err != nil {
-
-	// 		h.logger.Error("Error EOF", zap.Error(err))
-
-	// 		return err
-
-	// 	}
-	// 	err = stream.Send(&pb.Ack{
-	// 		Message: "Success",
-	// 	})
-	// 	if err != nil {
-	// 		h.logger.Error("Error sending Ack to strea", zap.Error(err))
-	// 		return err
-	// 	}
-
-	// }
-
 	ackCh := make(chan *pb.Ack, 100)
 	errCh := make(chan error, 2)
 
+	 recvDone := make(chan struct{})
+    sendDone := make(chan struct{})
+
 	go func() {
+
+		defer close(ackCh)
+		defer close(recvDone)
 
 		for {
 
@@ -72,6 +48,8 @@ func (h *FluxHandler) Write(stream grpc.BidiStreamingServer[pb.Batch, pb.Ack]) e
 				if err == io.EOF {
 
 					return
+
+					
 				}
 
 			}
@@ -98,9 +76,11 @@ func (h *FluxHandler) Write(stream grpc.BidiStreamingServer[pb.Batch, pb.Ack]) e
 
 	go func() {
 
+		defer close(sendDone)
+
 		for ack := range ackCh {
 
-			if err := stream.Send(); err != nil {
+			if err := stream.Send(ack); err != nil {
 
 				select {
 
@@ -111,9 +91,19 @@ func (h *FluxHandler) Write(stream grpc.BidiStreamingServer[pb.Batch, pb.Ack]) e
 				return
 
 			}
+
+			h.logger.Info(
+				"Sent ack message",
+				zap.String("message", ack.Message),
+			)
+
+
 		}
 
 	}()
+
+
+	return nil
 
 }
 func (h *FluxHandler) QueryRange(context.Context, *pb.QueryRangeRequest) (*pb.QueryRangeResponse, error) {
