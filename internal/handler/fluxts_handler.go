@@ -41,7 +41,7 @@ func (h *FluxHandler) Write(stream grpc.BidiStreamingServer[pb.Batch, pb.Ack]) e
 
 		for {
 
-			req, err := stream.Recv()
+			msg, err := stream.Recv()
 
 			if err != nil {
 
@@ -71,7 +71,7 @@ func (h *FluxHandler) Write(stream grpc.BidiStreamingServer[pb.Batch, pb.Ack]) e
 
 			h.logger.Info(
 				"Received batch",
-				zap.String("message", req.String()),
+				zap.String("message", msg.String()),
 			)
 
 			ack := &pb.Ack{
